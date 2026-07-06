@@ -2,9 +2,14 @@
 
 Pull data from an **Odoo Online 17** instance over the **JSON-RPC** external API.
 
-The first pipeline connects, authenticates with an API key, and exports
-**Partners/Contacts** (`res.partner`) to a CSV file. The JSON-RPC client is
-model-agnostic, so later pulls (products, sales orders, invoices) can reuse it.
+Two pipelines share one model-agnostic JSON-RPC client:
+
+- `pull_report_data.py` — **phase 1 (staging)** of the Sales Analysis report:
+  exports the five Odoo-sourced CSVs of the report's source contract to a
+  local folder. The transform/merge logic (phase 2) is deliberately out of
+  scope here.
+- `pull_partners.py` — the original ad-hoc partner export (flattened,
+  human-readable columns).
 
 ## Requirements
 
@@ -37,7 +42,53 @@ API key, token, or password into tracked files.
 | `ODOO_USERNAME` | Login email of the API user                                        |
 | `ODOO_API_KEY`  | API key (used in place of the password for the external API)       |
 
-## Usage
+## Usage — Sales Analysis staging CSVs (phase 1)
+
+`pull_report_data.py` exports the five Odoo-sourced files consumed by the
+*VTU Report – Sales Analysis* workbook (source contract §2 of its
+documentation). Column names follow that contract exactly:
+
+| File | Odoo model | Notes |
+| --- | --- | --- |
+| `account_move.csv` | `account.move` | invoice headers; `--since` filters `date` |
+| `account_move_line.csv` | `account.move.line` | invoice lines; `--since` filters `date` |
+| `product_template.csv` | `product.template` | `product_id` = variant id (fact key) |
+| `res_currency.csv` | `res.currency` | `latest_rate` / `latest_rate_date` = Odoo `rate` / `date` |
+| `res_partner.csv` | `res.partner` | id, name, commercial_company_name, country_id |
+
+The sixth source of the report, `product_template_name.xlsx`, is a manually
+maintained mapping and is not pulled from Odoo.
+
+This is staging only — no state filters, joins, or derived columns (that is
+phase 2). The single exception: the two `account.move` datasets take a
+server-side `--since` date floor (default `2025-04-01`, the report's own
+cutoff) so the export volume stays sane.
+
+```powershell
+# Windows: pulls latest code, checks venv/.env, runs the export, summarises
+.\scripts\run-report-pull.ps1
+.\scripts\run-report-pull.ps1 --limit 5           # quick smoke test
+.\scripts\run-report-pull.ps1 --only res_partner  # single dataset
+```
+
+```bash
+python pull_report_data.py                        # all five CSVs -> output/
+python pull_report_data.py --only account_move,account_move_line
+python pull_report_data.py --since 2024-01-01     # widen the date window
+python pull_report_data.py --all-dates            # full history
+python pull_report_data.py --output-dir "C:/Odoo/CSV Library"
+```
+
+Deliberate differences vs. the legacy Power Automate CSVs (see the report
+docs "Notes & Quirks"): every file is **UTF-8** with standard CSV quoting
+(no Windows-1252, no unnamed junk columns), and empty values are written as
+empty strings instead of the literal text `"False"`. Many2one fields that
+the transform splits itself (e.g. `PartnerID`, `company_id`, `product_id`)
+keep the raw `[id,"Display Name"]` shape. If a custom field (e.g.
+`prodin_reference`) doesn't exist on your instance, the script warns and
+writes the column empty instead of failing.
+
+## Usage — partner export
 
 On Windows, the convenience script pulls the latest code, checks the venv and
 `.env`, runs the export, and prints a summary — the recommended way to run:
@@ -73,9 +124,14 @@ their display name; `many2many` fields (e.g. `category_id`) are joined with `;`.
 odoo_data/
 ├── .env.example          # documents required env vars
 ├── requirements.txt      # requests, python-dotenv
-├── pull_partners.py      # CLI entrypoint: connect -> pull res.partner -> write CSV
+├── pull_report_data.py   # phase 1: pull the 5 Sales Analysis staging CSVs
+├── pull_partners.py      # ad-hoc partner export (flattened columns)
+├── scripts/
+│   ├── run-report-pull.ps1  # Windows runner for pull_report_data.py
+│   └── run-pull.ps1         # Windows runner for pull_partners.py
 └── src/
     ├── config.py         # load & validate env vars
+    ├── datasets.py       # source contract: model -> CSV column specs
     └── odoo_client.py    # OdooClient: JSON-RPC transport, auth, execute_kw, search_read
 ```
 

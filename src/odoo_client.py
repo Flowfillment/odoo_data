@@ -117,6 +117,7 @@ class OdooClient:
         fields: list[str] | None = None,
         limit: int | None = None,
         offset: int = 0,
+        order: str | None = None,
     ) -> list[dict[str, Any]]:
         """Search + read records of ``model`` in a single round trip."""
         kwargs: dict[str, Any] = {"offset": offset}
@@ -124,6 +125,8 @@ class OdooClient:
             kwargs["fields"] = fields
         if limit is not None:
             kwargs["limit"] = limit
+        if order is not None:
+            kwargs["order"] = order
         return self.execute_kw(model, "search_read", [domain or []], kwargs)
 
     def search_read_all(
@@ -132,8 +135,13 @@ class OdooClient:
         domain: list[Any] | None = None,
         fields: list[str] | None = None,
         batch_size: int = 200,
+        order: str = "id",
     ) -> Iterator[dict[str, Any]]:
-        """Yield every matching record, paging in batches of ``batch_size``."""
+        """Yield every matching record, paging in batches of ``batch_size``.
+
+        Pages are ordered (by ``id`` unless overridden) so offset pagination
+        stays stable while Odoo keeps writing records.
+        """
         offset = 0
         while True:
             batch = self.search_read(
@@ -142,6 +150,7 @@ class OdooClient:
                 fields=fields,
                 limit=batch_size,
                 offset=offset,
+                order=order,
             )
             if not batch:
                 break

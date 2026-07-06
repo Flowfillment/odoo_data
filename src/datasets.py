@@ -146,7 +146,7 @@ ACCOUNT_MOVE_LINE = Dataset(
 
 PRODUCT_TEMPLATE = Dataset(
     # 2.3 products. product_id is the variant id: the fact table's
-    # relationship key. prodin_reference / report_category_name are custom
+    # relationship key. prodin_reference / report_category are custom
     # fields — pull_report_data warns and emits them empty if absent.
     name="product_template",
     model="product.template",
@@ -157,7 +157,7 @@ PRODUCT_TEMPLATE = Dataset(
         Column("prodin_reference", "prodin_reference"),
         Column("list_price", "list_price"),
         Column("standard_price", "standard_price"),
-        Column("report_category_name", "report_category_name"),
+        Column("report_category_name", "report_category", "m2o_name"),
     ),
 )
 

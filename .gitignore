@@ -1,0 +1,18 @@
+# Credentials
+.env
+
+# Output data
+output/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env.local
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

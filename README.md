@@ -39,6 +39,16 @@ API key, token, or password into tracked files.
 
 ## Usage
 
+On Windows, the convenience script pulls the latest code, checks the venv and
+`.env`, runs the export, and prints a summary — the recommended way to run:
+
+```powershell
+.\scripts\run-pull.ps1            # pull latest, then export all partners
+.\scripts\run-pull.ps1 --limit 5  # extra args pass through to pull_partners.py
+```
+
+Or invoke the script directly:
+
 ```bash
 # Quick connectivity test — pull at most 5 partners
 python pull_partners.py --limit 5

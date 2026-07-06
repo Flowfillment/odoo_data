@@ -2,6 +2,9 @@
 
 Pull data from an **Odoo Online 17** instance over the **JSON-RPC** external API.
 
+Roadmap, session handoff and the report's functional spec live in
+[`docs/`](docs/roadmap.md).
+
 Two pipelines share one model-agnostic JSON-RPC client:
 
 - `pull_report_data.py` — **phase 1 (staging)** of the Sales Analysis report:
@@ -122,6 +125,7 @@ their display name; `many2many` fields (e.g. `category_id`) are joined with `;`.
 
 ```
 odoo_data/
+├── docs/                 # roadmap, session handoff, report functional spec
 ├── .env.example          # documents required env vars
 ├── requirements.txt      # requests, python-dotenv
 ├── pull_report_data.py   # phase 1: pull the 5 Sales Analysis staging CSVs

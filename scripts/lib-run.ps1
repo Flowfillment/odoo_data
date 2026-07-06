@@ -1,6 +1,7 @@
 # Shared helpers for the run-*.ps1 scripts. Dot-sourced, not run directly.
 # Keeps the pre-flight checks and the "sync with GitHub" step identical
 # across every runner so the behaviour can't drift between them.
+# Kept ASCII-only: Windows PowerShell 5.1 misreads non-ASCII in .ps1 files.
 
 $ErrorActionPreference = 'Stop'
 
@@ -38,11 +39,11 @@ function Sync-Repo {
     $base   = (git merge-base '@' '@{u}').Trim()
 
     if ($local -eq $remote) {
-        Write-Host "    Up to date with origin — no changes online." -ForegroundColor Green
+        Write-Host "    Up to date with origin - no changes online." -ForegroundColor Green
     }
     elseif ($local -eq $base) {
         $count = (git rev-list --count '@..@{u}').Trim()
-        Write-Host "    $count new commit(s) online — pulling:" -ForegroundColor Yellow
+        Write-Host "    $count new commit(s) online - pulling:" -ForegroundColor Yellow
         git --no-pager log --oneline --no-decorate '@..@{u}' | ForEach-Object { Write-Host "      $_" }
         git merge --ff-only --quiet '@{u}'
         if ($LASTEXITCODE -ne 0) {

@@ -21,9 +21,14 @@ pip install -r requirements.txt
 
 cp .env.example .env
 # then edit .env with your Odoo URL, database, username, and API key
+
+# enable the secret-scanning git hook (one-time per clone)
+git config core.hooksPath .githooks   # Windows: .\scripts\setup-hooks.ps1
 ```
 
-`.env` is gitignored — your credentials are never committed.
+`.env` is gitignored — your credentials are never committed. The pre-commit
+hook in `.githooks/` additionally blocks any commit that would introduce an
+API key, token, or password into tracked files.
 
 | Variable        | Description                                                        |
 | --------------- | ------------------------------------------------------------------ |

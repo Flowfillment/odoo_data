@@ -1,2 +1,5 @@
 requests>=2.31
 python-dotenv>=1.0
+
+# Dev: powers the secret-scanning pre-commit hook (.githooks/pre-commit)
+detect-secrets>=1.5

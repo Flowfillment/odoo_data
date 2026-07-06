@@ -1,0 +1,24 @@
+#!/bin/sh
+# Secret-scanning guard. Tracked in the repo so it travels with every clone.
+# Enable it once per clone with:  git config core.hooksPath .githooks
+# (or run: scripts/setup-hooks.ps1)
+#
+# Blocks a commit that introduces a likely secret (API key, token, password)
+# not already recorded in .secrets.baseline. To accept a flagged value on
+# purpose, add `# pragma: allowlist secret` on the line, or refresh the
+# baseline:  ./venv/Scripts/detect-secrets scan > .secrets.baseline
+
+# Prefer the project venv; fall back to a detect-secrets on PATH.
+if [ -x "./venv/Scripts/detect-secrets-hook.exe" ]; then
+  HOOK="./venv/Scripts/detect-secrets-hook.exe"
+elif command -v detect-secrets-hook >/dev/null 2>&1; then
+  HOOK="detect-secrets-hook"
+else
+  echo "pre-commit: detect-secrets not installed (pip install -r requirements.txt). Commit blocked." >&2
+  exit 1
+fi
+
+staged=$(git diff --cached --name-only --diff-filter=ACM)
+[ -z "$staged" ] && exit 0
+
+"$HOOK" --baseline .secrets.baseline $staged

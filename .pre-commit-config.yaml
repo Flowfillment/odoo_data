@@ -1,9 +1,0 @@
-# Runs on every `git commit`. Blocks the commit if a likely secret
-# (API key, token, password) is found in the staged changes.
-# Install once with: pre-commit install
-repos:
-  - repo: https://github.com/Yelp/detect-secrets
-    rev: v1.5.0
-    hooks:
-      - id: detect-secrets
-        args: ['--baseline', '.secrets.baseline']

@@ -54,6 +54,22 @@ Open verification items:
   Power Automate file; if it held something else (e.g. the rate), fix the
   one-line mapping in `src/datasets.py`.
 
+## Manual source: `product_template_name.xlsx`
+
+The Dutch product-name mapping (§2.6) is maintained by hand and cannot be
+re-pulled from anywhere. Agreed location (2026-07-06):
+**`output/product_template_name.xlsx`**, next to the staging CSVs on the
+local machine.
+
+- Safe next to the extract: `pull_report_data.py` only (over)writes the five
+  contract CSVs by their exact names and never deletes anything else in
+  `output/`.
+- `output/` is gitignored, so this file lives only on the local machine —
+  keep a backup copy; it is the only file in `output/` that cannot be
+  regenerated.
+- Phase 2 reads it from this path and must fail with a clear message when
+  it is missing.
+
 ## Phase 2 — Transform (next)
 
 **Decision (2026-07-06): the transform runs locally in Python**, replacing
@@ -69,7 +85,7 @@ Scope — replicate §3 faithfully, then simplify:
    UoM factor table, §3.2), `price_subtotal_eur`, `special_category`
    (§3.9), `Invoiced Amount = balance * -1` (§3.11). Output columns: §3.11.
 2. **Dimensions:** `dim_product` enrichment incl. Dutch names from the
-   manually maintained `product_template_name.xlsx` (§2.6, §3.5–3.6),
+   manually maintained `output/product_template_name.xlsx` (see above),
    `dim_partner`, `dim_currency`, `dim_date` (§3.4), `dim_uom`,
    `dim_company` (§3.2–3.3).
 3. **Refresh timestamp:** legacy read SharePoint file metadata (§3.1);

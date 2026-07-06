@@ -5,12 +5,14 @@ Pull data from an **Odoo Online 17** instance over the **JSON-RPC** external API
 Roadmap, session handoff and the report's functional spec live in
 [`docs/`](docs/roadmap.md).
 
-Two pipelines share one model-agnostic JSON-RPC client:
+The Sales Analysis pipeline runs in two decoupled steps, plus an ad-hoc
+export that shares the same JSON-RPC client:
 
-- `pull_report_data.py` — **phase 1 (staging)** of the Sales Analysis report:
-  exports the five Odoo-sourced CSVs of the report's source contract to a
-  local folder. The transform/merge logic (phase 2) is deliberately out of
-  scope here.
+- `pull_report_data.py` — **phase 1 (staging)**: exports the five
+  Odoo-sourced CSVs of the report's source contract to a local folder.
+- `transform_report_data.py` — **phase 2 (transform)**: turns the staging
+  CSVs into the fact + dimension tables the report consumes (the Python
+  replacement of the workbook's Power Query layer).
 - `pull_partners.py` — the original ad-hoc partner export (flattened,
   human-readable columns).
 
@@ -96,6 +98,48 @@ keep the raw `[id,"Display Name"]` shape. If a custom field (e.g.
 `prodin_reference`) doesn't exist on your instance, the script warns and
 writes the column empty instead of failing.
 
+## Usage — Sales Analysis transform (phase 2)
+
+`transform_report_data.py` replaces the workbook's Power Query layer (§3 of
+the report documentation). It reads the staging CSVs plus the manual
+`product_template_name.xlsx` from `output/` and writes the report tables to
+`output/report/`:
+
+| File | Contents |
+| --- | --- |
+| `report_invoiced.csv` | final fact table (§3.11): posted invoices ≥ cutoff, headers × lines, `special_category`, `Invoiced Amount` |
+| `dim_product.csv` | products enriched with references and Dutch names (§3.6) |
+| `dim_partner.csv` / `dim_currency.csv` | customer / currency dimensions (§3.7) |
+| `dim_date.csv` | daily calendar from the cutoff through today (§3.4) |
+| `dim_uom.csv` / `dim_company.csv` | static lookup tables, from the rules file |
+| `refresh_date_time.csv` | pipeline run timestamp (replaces the SharePoint file metadata of §3.1) |
+
+Business maintenance data lives in **`config/transform_rules.json`** — edit
+that file, not the code, when rules change: the `special_category` product-id
+lists and rental account, the company mapping (includes PRM B.V., fixing the
+legacy gap), and the UoM factor table. The transform warns about any company
+or UoM id it meets that is missing from the rules file.
+
+```powershell
+# Windows: pulls latest code, checks venv/.env, runs the transform, summarises
+.\scripts\run-report-transform.ps1
+```
+
+```bash
+python transform_report_data.py                    # output/ -> output/report/
+python transform_report_data.py --cutoff 2024-04-01
+python transform_report_data.py --iso-weeks        # true ISO 8601 week numbers
+python transform_report_data.py --input-dir "C:/Odoo/CSV Library" --output-dir out
+```
+
+Week numbers in `dim_date` default to the legacy Power Query numbering
+(week 1 contains January 1, weeks start Monday) so historical week buckets
+stay comparable; `--iso-weeks` switches to true ISO 8601.
+
+The transform fails with a clear message when
+`output/product_template_name.xlsx` is missing — that manual mapping cannot
+be regenerated, so restore it from backup (or point `--product-names` at it).
+
 ## Usage — partner export
 
 On Windows, the convenience script pulls the latest code, checks the venv and
@@ -131,16 +175,21 @@ their display name; `many2many` fields (e.g. `category_id`) are joined with `;`.
 ```
 odoo_data/
 ├── docs/                 # roadmap, session handoff, report functional spec
+├── config/
+│   └── transform_rules.json  # special_category lists, company map, UoM factors
 ├── .env.example          # documents required env vars
-├── requirements.txt      # requests, python-dotenv
-├── pull_report_data.py   # phase 1: pull the 5 Sales Analysis staging CSVs
+├── requirements.txt      # requests, python-dotenv, openpyxl
+├── pull_report_data.py       # phase 1: pull the 5 Sales Analysis staging CSVs
+├── transform_report_data.py  # phase 2: staging CSVs -> fact + dimension tables
 ├── pull_partners.py      # ad-hoc partner export (flattened columns)
 ├── scripts/
-│   ├── run-report-pull.ps1  # Windows runner for pull_report_data.py
-│   └── run-pull.ps1         # Windows runner for pull_partners.py
+│   ├── run-report-pull.ps1       # Windows runner for pull_report_data.py
+│   ├── run-report-transform.ps1  # Windows runner for transform_report_data.py
+│   └── run-pull.ps1              # Windows runner for pull_partners.py
 └── src/
     ├── config.py         # load & validate env vars
     ├── datasets.py       # source contract: model -> CSV column specs
+    ├── transform.py      # phase 2 transform logic (port of the Power Query layer)
     └── odoo_client.py    # OdooClient: JSON-RPC transport, auth, execute_kw, search_read
 ```
 

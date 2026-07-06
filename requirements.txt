@@ -1,5 +1,7 @@
 requests>=2.31
 python-dotenv>=1.0
+# Phase 2 transform: reads the manual product_template_name.xlsx
+openpyxl>=3.1
 
 # Dev: powers the secret-scanning pre-commit hook (.githooks/pre-commit)
 detect-secrets>=1.5

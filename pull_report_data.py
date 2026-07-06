@@ -11,7 +11,9 @@ Exports the five Odoo-sourced CSV files of the report's source contract
     res_partner.csv         customers         (res.partner)
 
 The sixth source, product_template_name.xlsx, is a manually maintained
-mapping file and is intentionally not pulled from Odoo.
+mapping file and is intentionally not pulled from Odoo. It lives alongside
+the staging CSVs (output/product_template_name.xlsx); this script only
+writes the five CSV files above and never deletes other files there.
 
 This is staging only: no filtering on invoice state, no joins, no derived
 columns — that is the transform (phase 2). The one exception is the

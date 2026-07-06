@@ -60,7 +60,12 @@ documentation). Column names follow that contract exactly:
 | `res_partner.csv` | `res.partner` | id, name, commercial_company_name, country_id |
 
 The sixth source of the report, `product_template_name.xlsx`, is a manually
-maintained mapping and is not pulled from Odoo.
+maintained mapping and is not pulled from Odoo. It lives at
+`output/product_template_name.xlsx`, next to the staging CSVs. That is safe:
+the pull only (over)writes the five CSVs above by their exact names and
+never deletes anything else in `output/`. Since `output/` is gitignored,
+keep a backup of the xlsx — it is the only file there that cannot be
+regenerated.
 
 This is staging only — no state filters, joins, or derived columns (that is
 phase 2). The single exception: the two `account.move` datasets take a

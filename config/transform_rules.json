@@ -9,11 +9,16 @@
     "    PRM B.V. (id 2) is included here, fixing the gap in the legacy",
     "    replacement rules (spec section 5.4).",
     "  uom_factors: quantity_product_uom = quantity / factor (spec section",
-    "    3.2). The legacy workbook embeds 16 rows but the spec documents",
-    "    only these six; the transform warns about any uom id it meets",
-    "    that is missing here (quantity is then kept unconverted, the",
-    "    legacy null-factor behaviour). Copy the remaining rows from the",
-    "    workbook's dim_uom query when they surface in a warning."
+    "    3.2); the factor is how many of that unit make one reference unit",
+    "    (g=1000, ton=0.001 relative to kg). The transform warns about any",
+    "    uom id it meets that is missing here (quantity is then kept",
+    "    unconverted, the legacy null-factor behaviour).",
+    "    Deliberately missing: id 39 'boxes' - the units-per-box factor",
+    "    must be copied from the dim_uom query in the legacy workbook",
+    "    (Power Query editor); until then its warning is intentional.",
+    "    Ids 5/10/14/40 were added 2026-07-06 with natural factors after",
+    "    they surfaced in the first live run - cross-check them against",
+    "    the workbook's dim_uom query when it is open anyway."
   ],
   "special_category": {
     "rental_accounts": ["800550 Omzet NL Verhuur"],
@@ -28,9 +33,13 @@
   "uom_factors": [
     { "uom_id": 1, "name": "units", "factor": 1 },
     { "uom_id": 4, "name": "hours", "factor": 8 },
+    { "uom_id": 5, "name": "m", "factor": 1 },
+    { "uom_id": 10, "name": "Liter", "factor": 1 },
     { "uom_id": 12, "name": "kg", "factor": 1 },
     { "uom_id": 13, "name": "g", "factor": 1000 },
+    { "uom_id": 14, "name": "ton", "factor": 0.001 },
     { "uom_id": 36, "name": "100 units", "factor": 0.01 },
-    { "uom_id": 37, "name": "1000 units", "factor": 0.001 }
+    { "uom_id": 37, "name": "1000 units", "factor": 0.001 },
+    { "uom_id": 40, "name": "liters", "factor": 1 }
   ]
 }

@@ -1,0 +1,36 @@
+{
+  "_comment": [
+    "Maintenance data for the phase-2 transform (transform_report_data.py).",
+    "Edit this file - not the code - when business rules change:",
+    "  special_category: classification rules from the legacy Power Query",
+    "    step (spec section 3.9). rental_accounts match on the account_id",
+    "    display name; the product-id lists match on the numeric variant id.",
+    "  companies: company_id -> friendly label (spec section 3.3/3.8).",
+    "    PRM B.V. (id 2) is included here, fixing the gap in the legacy",
+    "    replacement rules (spec section 5.4).",
+    "  uom_factors: quantity_product_uom = quantity / factor (spec section",
+    "    3.2). The legacy workbook embeds 16 rows but the spec documents",
+    "    only these six; the transform warns about any uom id it meets",
+    "    that is missing here (quantity is then kept unconverted, the",
+    "    legacy null-factor behaviour). Copy the remaining rows from the",
+    "    workbook's dim_uom query when they surface in a warning."
+  ],
+  "special_category": {
+    "rental_accounts": ["800550 Omzet NL Verhuur"],
+    "special_product_ids": [3030, 1728, 24, 3566, 7],
+    "rss_product_ids": [1242, 1138, 1241, 1243, 1089]
+  },
+  "companies": [
+    { "id": 1, "name": "VTU - NL (B.V.)" },
+    { "id": 2, "name": "PRM B.V." },
+    { "id": 3, "name": "VTU - UK (Ltd.)" }
+  ],
+  "uom_factors": [
+    { "uom_id": 1, "name": "units", "factor": 1 },
+    { "uom_id": 4, "name": "hours", "factor": 8 },
+    { "uom_id": 12, "name": "kg", "factor": 1 },
+    { "uom_id": 13, "name": "g", "factor": 1000 },
+    { "uom_id": 36, "name": "100 units", "factor": 0.01 },
+    { "uom_id": 37, "name": "1000 units", "factor": 0.001 }
+  ]
+}

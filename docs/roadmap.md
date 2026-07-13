@@ -182,9 +182,15 @@ model (relationships §4.2, measures §4.3) and pivots (§4.4).
   cut all match the live workbook (details in the phase 2 section).
   The `boxes` (uom id 39) follow-up is closed too: the unit was archived
   in Odoo on 2026-07-13 (see the parked-points list).
-- [ ] **Before touching measures:** export the exact DAX definitions from
-  the live workbook (Power Pivot → Manage) — §4.3 is a reconstruction
-  (§5.8).
+- [x] **Export the exact DAX definitions** — done 2026-07-13: all six
+  explicit measures recorded verbatim in spec §4.3 (replacing the
+  reconstruction, which was wrong on two points). They work unchanged on
+  the phase-2 outputs **provided** the rebuilt model names the tables
+  `Report - Invoiced` and `dim_product` — see the porting note in §4.3.
+- [ ] **Validate the margin measures** after the rebuild: Gross Profit /
+  Margin % / Cost of Sales depend on `quantity_product_uom` and
+  `standard_price`, which the 2026-07-13 reconciliation did not cover
+  (only Turnover, Invoiced Amount, Quantity, special_category).
 - [ ] The stale `Merge1` connection in the workbook (§5.6) — remove when
   the workbook is rebuilt on the new outputs.
 - [ ] Also still open: the `CurrencyValue` verification from phase 1 (see

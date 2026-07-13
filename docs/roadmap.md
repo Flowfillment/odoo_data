@@ -6,7 +6,10 @@ straight from Odoo Online 17 (JSON-RPC).
 
 The functional spec is the reverse-engineered workbook documentation:
 [`sales-analysis-v1.0-powerquery-powerpivot.md`](sales-analysis-v1.0-powerquery-powerpivot.md).
-Section references below (§) point into that document.
+Section references below (§) point into that document. The consolidated
+as-is description of the validated POC (architecture, data model,
+validation status, assumptions) is
+[`sales-analysis-pipeline-as-is.md`](sales-analysis-pipeline-as-is.md).
 
 ```
 Phase 1  EXTRACT    Odoo -> staging CSVs            DONE
@@ -106,11 +109,11 @@ Design decisions a future session should know:
   warns about unmapped company ids and unknown UoM ids at run time.
 - **PRM B.V. (id 2) added** to the company mapping (fixes §5.4). Unmapped
   company ids keep their raw Odoo display name and trigger a warning.
-- **UoM factors: only the 6 rows the spec documents (§3.2) are seeded.**
-  The legacy workbook embeds 16. Missing ids surface as a run-time warning
-  (quantity then stays unconverted, the legacy null-factor behaviour) —
-  copy the remaining rows from the workbook's `dim_uom` query into the
-  rules file as they surface.
+- **UoM factors live in the rules file** (10 rows as of 2026-07-13: the 6
+  the spec documents plus m/Liter/ton/liters, surfaced by the first live
+  run; boxes was archived in Odoo instead — see the parked-points list).
+  Missing ids surface as a run-time warning and quantity then stays
+  unconverted, the legacy null-factor behaviour.
 - **Week numbering: legacy Power Query semantics kept by default**
   (week 1 contains Jan 1, weeks start Monday) so historical week buckets
   stay comparable; `--iso-weeks` switches to true ISO 8601 (§3.4 quirk —
@@ -191,6 +194,9 @@ model (relationships §4.2, measures §4.3) and pivots (§4.4).
   Margin % / Cost of Sales depend on `quantity_product_uom` and
   `standard_price`, which the 2026-07-13 reconciliation did not cover
   (only Turnover, Invoiced Amount, Quantity, special_category).
+  **POC note (2026-07-13): the owner accepts the margin measures as-is
+  for the POC**; this item stays open for when the model graduates
+  beyond POC.
 - [ ] The stale `Merge1` connection in the workbook (§5.6) — remove when
   the workbook is rebuilt on the new outputs.
 - [ ] Also still open: the `CurrencyValue` verification from phase 1 (see
@@ -198,7 +204,8 @@ model (relationships §4.2, measures §4.3) and pivots (§4.4).
 
 ## Handoff — how to start the phase 3 session
 
-1. Read this file and the spec (`docs/sales-analysis-v1.0-powerquery-powerpivot.md`).
+1. Read `docs/sales-analysis-pipeline-as-is.md` (the validated as-is),
+   this file, and the spec (`docs/sales-analysis-v1.0-powerquery-powerpivot.md`).
 2. Extract layer: `src/datasets.py` is the source contract in code;
    `python pull_report_data.py --limit 5` is a quick smoke test.
 3. Transform layer: `python transform_report_data.py` reads `output/` and

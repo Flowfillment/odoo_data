@@ -24,7 +24,9 @@ is still written and named so it can be printed to PDF manually.
 from __future__ import annotations
 
 import argparse
+import base64
 import datetime as dt
+import glob
 import os
 import shutil
 import subprocess
@@ -32,6 +34,20 @@ import sys
 
 from src.customer_report import compute_kpis, find_customer, render_html
 from src.transform import TransformError, read_staging_csv
+
+LOGO_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+              ".svg": "image/svg+xml"}
+
+
+def find_logo() -> str | None:
+    """Company logo as a data URI, from assets/logo.(png|jpg|svg) if present."""
+    for path in sorted(glob.glob(os.path.join("assets", "logo.*"))):
+        mime = LOGO_TYPES.get(os.path.splitext(path)[1].lower())
+        if mime:
+            with open(path, "rb") as fh:
+                encoded = base64.b64encode(fh.read()).decode("ascii")
+            return f"data:{mime};base64,{encoded}"
+    return None
 
 # Where a Chromium-family browser typically lives (first hit wins).
 BROWSER_CANDIDATES = (
@@ -135,9 +151,13 @@ def main(argv: list[str] | None = None) -> int:
         variants = ("customer", "internal") if args.variant == "both" else (args.variant,)
         os.makedirs(args.output_dir, exist_ok=True)
         stamp = kpis.generated_at.strftime("%Y-%m-%d")
+        logo = find_logo()
+        if logo is None:
+            print("  Note: no assets/logo.* found - generating without logo.",
+                  file=sys.stderr)
         for variant in variants:
             internal = variant == "internal"
-            html_text = render_html(kpis, internal=internal)
+            html_text = render_html(kpis, internal=internal, logo_data_uri=logo)
             base = f"{safe_filename(customer.label)} - {stamp} - {variant}"
             html_path = os.path.join(args.output_dir, base + ".html")
             pdf_path = os.path.join(args.output_dir, base + ".pdf")

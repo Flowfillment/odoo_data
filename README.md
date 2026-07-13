@@ -3,7 +3,9 @@
 Pull data from an **Odoo Online 17** instance over the **JSON-RPC** external API.
 
 Roadmap, session handoff and the report's functional spec live in
-[`docs/`](docs/roadmap.md).
+[`docs/`](docs/roadmap.md); the consolidated as-is description of the
+validated pipeline (POC) is
+[`docs/sales-analysis-pipeline-as-is.md`](docs/sales-analysis-pipeline-as-is.md).
 
 The Sales Analysis pipeline runs in two decoupled steps, plus an ad-hoc
 export that shares the same JSON-RPC client:

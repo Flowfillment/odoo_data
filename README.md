@@ -186,6 +186,27 @@ python refresh_report_data.py               # without the git sync step
 python refresh_report_data.py --all-dates   # forwarded to phase 1
 ```
 
+## Usage — customer report (phase 4)
+
+`generate_customer_report.py` produces the per-customer 2–3 page PDF for
+sales from the pipeline outputs, in two variants: **customer** (no margin
+data whatsoever — excluded at data-assembly level) and **internal** (with
+gross margin / margin %, definition anchored on the validated model, spec
+§4.3). In Claude Code the standardised process is the `customer-report`
+skill (`.claude/skills/customer-report/`).
+
+```bash
+python generate_customer_report.py --customer "Acme"            # both variants
+python generate_customer_report.py --customer 501 --variant internal
+```
+
+Run a full refresh first for fresh data. PDFs land in
+`output/customer_reports/`; rendering uses a locally installed
+Chromium-family browser (Edge on Windows). An ambiguous customer name
+lists the candidates instead of guessing. The days-to-payment KPI shows
+"nog niet beschikbaar" until the payments extract exists (pending the
+`probe_payments.py` outcome).
+
 ## Usage — partner export
 
 On Windows, the convenience script pulls the latest code, checks the venv and

@@ -267,15 +267,23 @@ Plan:
    and whether `account.partial.reconcile.max_date` yields usable
    payment dates — run it once and design the payments extract on its
    output.
-2. **KPI layer**: per-customer computations in code with definitions
-   documented; margin formula = §4.3 Gross Profit, verbatim port.
-3. **Skill + template**: `.claude/skills/` skill taking customer +
-   variant; HTML template rendered to PDF (headless Edge/Chrome — no new
-   dependencies); the customer variant excludes margin data at the
-   data-assembly level, not just in presentation, so it cannot leak.
-4. **Pilot**: one real customer, each KPI spot-checked against the Odoo
-   UI (order data and payment KPIs are new, outside the validated scope);
-   margin total cross-checked against the sales-wide model.
+2. **KPI layer** — built 2026-07-13: `src/customer_report.py`, KPI
+   definitions in its module docstring; margin = verbatim §4.3 Gross
+   Profit port (verified per line on the synthetic fixture). Days to
+   payment computes only when `output/payments.csv` exists (the payments
+   extract that follows from the probe); until then the report shows
+   "nog niet beschikbaar".
+3. **Skill + template** — built 2026-07-13:
+   `generate_customer_report.py` (CLI) + `.claude/skills/customer-report`
+   (standardised process). Dutch A4 HTML → PDF via a local
+   Chromium-family browser (Edge on Windows; `--no-sandbox` fallback for
+   containers). Customer variant verified margin-free at data level;
+   ambiguous customer names list candidates instead of guessing.
+4. **Pilot** — open: one real customer, each KPI spot-checked against
+   the Odoo UI (order data and payment KPIs are new, outside the
+   validated scope); margin total cross-checked against the sales-wide
+   model. Blocked on the live smoke test of the extract extensions and
+   the probe output (step 1).
 
 Design questions still open for the business: exact definition of
 "still to deliver" (€ or units; basis: order lines), report period

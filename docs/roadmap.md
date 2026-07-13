@@ -109,6 +109,38 @@ Design decisions a future session should know:
 - Missing `output/product_template_name.xlsx` fails with a clear
   restore-from-backup message, as agreed above.
 
+## Phase 2 follow-ups — parked improvement points (2026-07-13)
+
+Discussed and deliberately parked until the transform output has been
+validated against the live workbook (validation makes every later change
+testable). Business-logic scope — the structural pipeline backlog is
+[`pipeline-improvements.md`](pipeline-improvements.md).
+
+- [ ] **Rental detection matches the full account display name**
+  (`"800550 Omzet NL Verhuur"`, §3.9). Renaming the account in Odoo would
+  silently drop all Rental Orders. Match on the account *code* prefix
+  (`800550`) instead.
+- [ ] **Special/RSS product-id lists** are config now, but still a
+  manually maintained list — a new special product silently classifies as
+  "Normal". Structural fix: own this in Odoo (e.g. `report_category` or a
+  product field) so the source system knows and the transform only reads.
+- [ ] **Double currency conversion** (§5.3): Turnover uses
+  `price_subtotal / currency_rate`, Invoiced Amount uses `balance * -1` —
+  two routes to EUR that differ by rounding. Ask the business whether
+  that was ever intentional, or whether Turnover should be balance-based.
+- [ ] **Data-driven dimensions**: pull `uom.uom` factors and `res.company`
+  names from Odoo in phase 1 instead of maintaining copies in
+  `config/transform_rules.json`. Caveat: the legacy `hours = 8` factor
+  (hours -> days) is a reporting choice that is NOT in Odoo, so a config
+  override on top stays needed.
+- [ ] **boxes (uom id 39)**: factor still missing — read it from the
+  `dim_uom` query in the legacy workbook (Power Query editor).
+- [ ] **Dutch-names gap**: ~514 products without a row in the manual
+  `product_template_name.xlsx` (legacy had the same gap; English fallback
+  applies). Data maintenance, not logic.
+- [ ] **ISO week numbering**: implemented behind `--iso-weeks`, default
+  stays legacy. Business decision whether/when to switch.
+
 ## Operations — full refresh & run report (added 2026-07-13)
 
 `refresh_report_data.py` (Windows: `scripts/run-full-refresh.ps1`, which

@@ -86,8 +86,17 @@ xlsx from `output/` and write the report tables to `output/report/`:
 `dim_partner.csv`, `dim_currency.csv`, `dim_date.csv`, `dim_uom.csv`,
 `dim_company.csv`, `refresh_date_time.csv`. Windows runner:
 `scripts/run-report-transform.ps1`. Verified end-to-end against synthetic
-staging data covering every §3.8–3.11 rule; **not yet reconciled against
-the live workbook's numbers** (see phase 3 checklist).
+staging data covering every §3.8–3.11 rule.
+
+**Validated against the live workbook (2026-07-13):** after adding the
+800*-revenue-account extract filter (which the legacy Power Automate flow
+applied invisibly — see phase 1 notes), Invoiced Amount (`balance`)
+matches to the cent, Turnover (`price_subtotal_eur`) matches to full
+float precision (14+ digits), Quantity matches, and the
+`special_category` cut matches. Watch out when loading the CSVs into
+Excel: Power Query's automatic type detection (first ~200 rows, per
+column) can silently type a decimal column as whole number — type the
+numeric columns explicitly (Decimal, en-US locale).
 
 Design decisions a future session should know:
 
@@ -164,11 +173,11 @@ business-logic improvements stay in the phase 2/3 sections here.
 Rebuild the workbook on the phase-2 outputs (`output/report/`): Power Pivot
 model (relationships §4.2, measures §4.3) and pivots (§4.4).
 
-- [ ] **Reconcile first:** run extract + transform on the live machine and
-  compare `report_invoiced.csv` totals (Turnover, Invoiced Amount, per
-  company/month) against the current workbook before rebuilding on it.
-  While at it, note any "UoM id without a factor" warnings and complete
-  `config/transform_rules.json` from the workbook's `dim_uom` query.
+- [x] **Reconcile first** — done 2026-07-13: Invoiced Amount to the cent,
+  Turnover to full float precision, Quantity and the `special_category`
+  cut all match the live workbook (details in the phase 2 section).
+  Still open from this item: the `boxes` (uom id 39) factor — read it
+  from the workbook's `dim_uom` query into `config/transform_rules.json`.
 - [ ] **Before touching measures:** export the exact DAX definitions from
   the live workbook (Power Pivot → Manage) — §4.3 is a reconstruction
   (§5.8).

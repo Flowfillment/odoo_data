@@ -322,37 +322,70 @@ def compute_kpis(input_dir: str, customer: Customer, today: dt.date) -> Kpis:
 
 # --- Rendering --------------------------------------------------------------------
 
-CSS = """
-@page { size: A4; margin: 16mm 14mm; }
-* { box-sizing: border-box; }
-body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a1a;
-       font-size: 10pt; line-height: 1.45; margin: 0; }
-h1 { font-size: 19pt; margin: 0 0 2px; }
-h2 { font-size: 12pt; margin: 22px 0 6px; border-bottom: 2px solid #1a355e;
-     padding-bottom: 3px; color: #1a355e; page-break-after: avoid; }
-.sub { color: #555; margin: 0 0 4px; }
-.badge { display: inline-block; padding: 2px 10px; border-radius: 3px;
-         font-weight: 600; font-size: 9pt; letter-spacing: .5px; }
-.badge.internal { background: #7a1f1f; color: #fff; }
-.badge.customer { background: #e8eef7; color: #1a355e; }
-.tiles { display: flex; gap: 8px; margin: 14px 0 4px; flex-wrap: wrap; }
-.tile { flex: 1 1 0; min-width: 110px; border: 1px solid #d5dbe4;
-        border-radius: 4px; padding: 8px 10px; }
-.tile .v { font-size: 13pt; font-weight: 650; white-space: nowrap; }
-.tile .l { font-size: 8pt; color: #555; text-transform: uppercase;
-           letter-spacing: .4px; }
-table { width: 100%; border-collapse: collapse; margin: 6px 0; }
-th { text-align: left; font-size: 8.5pt; text-transform: uppercase;
-     letter-spacing: .3px; color: #444; border-bottom: 1.5px solid #1a355e;
-     padding: 3px 6px; }
-td { padding: 3.5px 6px; border-bottom: 1px solid #e3e6eb; }
-td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
-tr.cat td { background: #f1f4f8; font-weight: 600; }
-tr.total td { border-top: 2px solid #1a355e; font-weight: 650; }
-.overdue { color: #a11212; font-weight: 600; }
-.note { color: #666; font-size: 8.5pt; }
-.footer { margin-top: 26px; padding-top: 6px; border-top: 1px solid #ccc;
-          color: #777; font-size: 8pt; }
+# Brand (Van Thiel United brandbook): PANTONE 2955 C = #003865 (navy),
+# PANTONE 285 C = #0072CE (blue); grey tints max 30% black; heads in
+# condensed bold (Oswald-equivalent); body 10pt; blue logo bar at the
+# bottom of every page.
+NAVY = "#003865"
+BLUE = "#0072CE"
+
+CSS = f"""
+@page {{ size: A4; margin: 0; }}
+* {{ box-sizing: border-box; -webkit-print-color-adjust: exact;
+     print-color-adjust: exact; }}
+body {{ font-family: Calibri, Carlito, 'Segoe UI', Arial, sans-serif;
+       color: #1a1a1a; font-size: 10pt; line-height: 1.45; margin: 0; }}
+h1, h2, .head {{ font-family: Oswald, 'Arial Narrow', 'Liberation Sans Narrow',
+       Arial, sans-serif; font-weight: 700; text-transform: uppercase; }}
+/* page frame: thead/tfoot spacers repeat per printed page */
+table.frame {{ width: 100%; border-collapse: collapse; }}
+td.frame-space {{ height: 10mm; padding: 0; }}
+td.frame-foot {{ height: 18mm; padding: 0; }}
+td.frame-body {{ padding: 0 14mm; }}
+/* bottom brand bar, repeated on every page */
+.botbar {{ position: fixed; left: 0; right: 0; bottom: 0; height: 12mm;
+          background: {BLUE}; color: #fff; }}
+.botbar .in {{ display: flex; justify-content: space-between;
+              align-items: center; height: 100%; padding: 0 14mm; }}
+.botbar .brand {{ font-family: Oswald, 'Arial Narrow', Arial, sans-serif;
+                 font-weight: 700; letter-spacing: 1px; font-size: 11pt; }}
+.botbar .site {{ font-size: 8pt; }}
+/* page-1 banner (bleeds to the paper edges) */
+.banner {{ background: {NAVY}; color: #fff; margin: -10mm -14mm 0;
+          padding: 10mm 14mm 7mm; }}
+.banner .title {{ font-size: 21pt; letter-spacing: .5px; margin: 0; }}
+.banner .customer {{ color: #9DC6E8; font-size: 14pt; margin: 1mm 0 4mm; }}
+.banner .meta {{ font-size: 9pt; color: #fff; }}
+.banner .meta .sep {{ color: #9DC6E8; padding: 0 6px; }}
+.banner .logo {{ float: right; background: #fff; border-radius: 3px;
+                padding: 3px 8px; margin-left: 8mm; }}
+.banner .logo img {{ height: 14mm; display: block; }}
+.badge {{ display: inline-block; padding: 1px 10px; border-radius: 3px;
+         font-weight: 700; font-size: 8.5pt; letter-spacing: .5px; }}
+.badge.internal {{ background: #7a1f1f; color: #fff; }}
+.badge.customer {{ background: {BLUE}; color: #fff; }}
+h2 {{ font-size: 13pt; margin: 22px 0 6px; color: {BLUE};
+     letter-spacing: .5px; page-break-after: avoid; }}
+.tiles {{ display: flex; gap: 8px; margin: 8mm 0 2mm; }}
+.tile {{ flex: 1 1 0; min-width: 0; border: 1px solid #D9D9D9;
+        border-top: 3px solid {BLUE}; padding: 8px 9px; }}
+.tile .v {{ font-size: 12pt; font-weight: 650; white-space: nowrap;
+           color: {NAVY}; }}
+.tile .l {{ font-size: 7.5pt; color: {NAVY}; text-transform: uppercase;
+           letter-spacing: .4px; }}
+table {{ width: 100%; border-collapse: collapse; margin: 6px 0; }}
+th {{ text-align: left; font-size: 8.5pt; text-transform: uppercase;
+     letter-spacing: .3px; color: #fff; background: {NAVY};
+     padding: 4px 6px; }}
+td {{ padding: 3.5px 6px; border-bottom: 1px solid #D9D9D9; }}
+td.n, th.n {{ text-align: right; font-variant-numeric: tabular-nums; }}
+tr.cat td {{ background: #EDEDED; font-weight: 600; }}
+tr.total td {{ border-top: 2px solid {NAVY}; border-bottom: none;
+              font-weight: 650; }}
+.overdue {{ color: #a11212; font-weight: 600; }}
+.note {{ color: #1a1a1a; font-size: 8.5pt; font-style: italic; }}
+.footer {{ margin-top: 26px; padding-top: 6px; border-top: 1px solid #D9D9D9;
+          color: #1a1a1a; font-size: 8pt; }}
 """
 
 
@@ -360,18 +393,26 @@ def esc(value: Any) -> str:
     return html.escape(str(value))
 
 
-def render_html(kpis: Kpis, internal: bool) -> str:
+def render_html(kpis: Kpis, internal: bool, logo_data_uri: str | None = None) -> str:
     """Render the report. For the customer variant every margin value is
     absent from the produced document (data-level exclusion)."""
     c: list[str] = []
     variant_badge = (
         '<span class="badge internal">INTERN – VERTROUWELIJK</span>'
-        if internal else '<span class="badge customer">Klantrapport</span>'
+        if internal else '<span class="badge customer">Klantrapportage</span>'
     )
-    c.append(f"<h1>Overzicht {esc(kpis.customer.label)}</h1>")
+    logo = (
+        f'<span class="logo"><img src="{logo_data_uri}" alt="logo"></span>'
+        if logo_data_uri else ""
+    )
     c.append(
-        f'<p class="sub">Periode {esc(kpis.period)} &nbsp;·&nbsp; opgesteld '
-        f"{kpis.generated_at.strftime('%d-%m-%Y')} &nbsp;·&nbsp; {variant_badge}</p>"
+        f'<div class="banner">{logo}'
+        f'<h1 class="title">Klantrapportage</h1>'
+        f'<div class="customer head">{esc(kpis.customer.label)}</div>'
+        f'<div class="meta">Periode: {esc(kpis.period)}<span class="sep">|</span>'
+        f"Datum: {kpis.generated_at.strftime('%d-%m-%Y')}"
+        f'<span class="sep">|</span>{variant_badge}</div>'
+        f"</div>"
     )
 
     # Tiles
@@ -486,7 +527,16 @@ def render_html(kpis: Kpis, internal: bool) -> str:
     c.append(f'<div class="footer">{source_note} &nbsp;·&nbsp; Gegenereerd op '
              f"{kpis.generated_at.strftime('%d-%m-%Y %H:%M')}.</div>")
 
-    title = f"Overzicht {esc(kpis.customer.label)}"
+    title = f"Klantrapportage {esc(kpis.customer.label)}"
+    botbar = ('<div class="botbar"><div class="in">'
+              '<span class="brand">VAN THIEL UNITED</span>'
+              '<span class="site">www.vanthielunited.com</span></div></div>')
+    frame = (
+        "<table class='frame'>"
+        "<thead><tr><td class='frame-space'></td></tr></thead>"
+        f"<tbody><tr><td class='frame-body'>{''.join(c)}</td></tr></tbody>"
+        "<tfoot><tr><td class='frame-foot'></td></tr></tfoot></table>"
+    )
     return (f"<!DOCTYPE html><html lang='nl'><head><meta charset='utf-8'>"
             f"<title>{title}</title><style>{CSS}</style></head>"
-            f"<body>{''.join(c)}</body></html>")
+            f"<body>{botbar}{frame}</body></html>")

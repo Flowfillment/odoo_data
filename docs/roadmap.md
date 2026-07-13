@@ -256,13 +256,17 @@ request by the owner (own machine, existing `.env`), not self-service.
 
 Plan:
 
-1. **Extract extensions** (`src/datasets.py`): new dataset
-   `sale_order_line` (ordered/delivered/invoiced qty, discount, state);
-   extra columns on `account_move` (`amount_residual`, `payment_state`,
-   `invoice_date_due`, payment term) and `account_move_line`
-   (`discount`); partner payment term on `res_partner`. Investigate on
-   the live instance how to get payment dates (likely
-   `account.partial.reconcile`) — the one open data question.
+1. **Extract extensions** — built 2026-07-13, pending live smoke test:
+   new datasets `sale_order` + `sale_order_line` (ordered/delivered/
+   invoiced qty + amounts, discount; section/note lines excluded
+   server-side); extra columns on `account_move` (`amount_residual`,
+   `payment_state`, `invoice_date_due`, `payment_term`),
+   `account_move_line` (`discount`) and `res_partner` (`payment_term`) —
+   all appended, so the phase-2 transform is unaffected. Payment dates:
+   `probe_payments.py` (read-only, one-off) checks field availability
+   and whether `account.partial.reconcile.max_date` yields usable
+   payment dates — run it once and design the payments extract on its
+   output.
 2. **KPI layer**: per-customer computations in code with definitions
    documented; margin formula = §4.3 Gross Profit, verbatim port.
 3. **Skill + template**: `.claude/skills/` skill taking customer +

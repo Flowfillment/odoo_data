@@ -119,6 +119,13 @@ ACCOUNT_MOVE = Dataset(
         Column("Currency", "currency_id", "m2o_name"),
         Column("WriteDate", "write_date"),
         Column("move_type", "move_type"),
+        # Phase 4 additions (customer report), appended after the legacy
+        # contract columns so the phase-2 transform is unaffected:
+        # open-invoice and payment-term KPIs.
+        Column("amount_residual", "amount_residual"),
+        Column("payment_state", "payment_state"),
+        Column("invoice_date_due", "invoice_date_due"),
+        Column("payment_term", "invoice_payment_term_id", "m2o_name"),
     ),
 )
 
@@ -146,6 +153,8 @@ ACCOUNT_MOVE_LINE = Dataset(
         Column("price_subtotal", "price_subtotal"),
         Column("price_unit", "price_unit"),
         Column("company_currency_id", "company_currency_id", "m2o_raw"),
+        # Phase 4 addition: discount percentage applied on the line.
+        Column("discount", "discount"),
     ),
 )
 
@@ -190,6 +199,54 @@ RES_PARTNER = Dataset(
         Column("name", "name"),
         Column("commercial_company_name", "commercial_company_name"),
         Column("country_id", "country_id", "m2o_raw"),
+        # Phase 4 addition: the customer's payment term.
+        Column("payment_term", "property_payment_term_id", "m2o_name"),
+    ),
+)
+
+# --- Phase 4 datasets (customer report) --------------------------------------
+# No legacy contract exists for these; column names follow the Odoo field
+# names. The phase-2 transform does not read them.
+
+SALE_ORDER = Dataset(
+    # Order headers: order state and invoicing status per order, for the
+    # invoiced-vs-to-deliver KPI.
+    name="sale_order",
+    model="sale.order",
+    date_field="date_order",
+    columns=(
+        Column("id", "id"),
+        Column("name", "name"),
+        Column("partner_id", "partner_id", "m2o_raw"),
+        Column("date_order", "date_order"),
+        Column("state", "state"),
+        Column("invoice_status", "invoice_status"),
+        Column("amount_untaxed", "amount_untaxed"),
+        Column("amount_total", "amount_total"),
+        Column("currency_id", "currency_id", "m2o_id"),
+        Column("payment_term", "payment_term_id", "m2o_name"),
+    ),
+)
+
+SALE_ORDER_LINE = Dataset(
+    # Order lines: ordered vs delivered vs invoiced quantities and amounts,
+    # plus the discount applied. Section/note pseudo-lines are excluded
+    # server-side (display_type is set on those, False on real lines).
+    name="sale_order_line",
+    model="sale.order.line",
+    static_domain=(["display_type", "=", False],),
+    columns=(
+        Column("id", "id"),
+        Column("order_id", "order_id", "m2o_raw"),
+        Column("product_id", "product_id", "m2o_raw"),
+        Column("product_uom_qty", "product_uom_qty"),
+        Column("qty_delivered", "qty_delivered"),
+        Column("qty_invoiced", "qty_invoiced"),
+        Column("price_unit", "price_unit"),
+        Column("discount", "discount"),
+        Column("price_subtotal", "price_subtotal"),
+        Column("untaxed_amount_invoiced", "untaxed_amount_invoiced"),
+        Column("untaxed_amount_to_invoice", "untaxed_amount_to_invoice"),
     ),
 )
 
@@ -201,5 +258,7 @@ DATASETS: dict[str, Dataset] = {
         PRODUCT_TEMPLATE,
         RES_CURRENCY,
         RES_PARTNER,
+        SALE_ORDER,
+        SALE_ORDER_LINE,
     )
 }

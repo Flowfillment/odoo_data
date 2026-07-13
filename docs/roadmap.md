@@ -163,6 +163,38 @@ testable). Business-logic scope — the structural pipeline backlog is
 - [ ] **ISO week numbering**: implemented behind `--iso-weeks`, default
   stays legacy. Business decision whether/when to switch.
 
+## Model v2 — deferred redesign (decision 2026-07-13)
+
+**Sequencing decision:** first settle how the data model will be deployed
+(Excel/Power Pivot vs Power BI, single machine vs shared/scheduled), then
+redesign the transformation **and** the code structure together in one
+design round, in service of that target. Nothing gets polished twice; the
+POC stays frozen as the validated reference and the full refresh remains
+in daily use meanwhile.
+
+Model v2 candidates (dimensional-design review, 2026-07-13 — these are
+deliberate legacy heritage, not port bugs; changing them breaks
+comparability with the validated POC and the current pivot layout):
+
+- [ ] **Thin the fact table**: it carries `partner_name`, the company
+  *label* and `CurrencyValue` as text per line while dimensions exist for
+  all three (`dim_company` is built but not even in the model — the label
+  comes from per-row text replacement). A clean star keeps keys +
+  measures + the invoice number, labels come via relationships.
+- [ ] **Split `special_category`**: rental detection (account-based) is
+  transaction-level and belongs on the fact; Special/RSS is a *product*
+  property and belongs in `dim_product` (ties into the parked
+  "own it in Odoo" point).
+- [ ] **One EUR conversion route** (see parked point on §5.3): pick
+  `balance` as the single source of truth for EUR amounts.
+
+Code-structure improvements deferred to the same round (review
+2026-07-13): declarative output contract mirroring `src/datasets.py`
+(dim schemas currently live in the CLI), input-boundary column
+validation + atomic writes, `build_fact` split into spec-shaped stages,
+committed pytest suite from the synthetic fixture, shared metrics
+helper.
+
 ## Operations — full refresh & run report (added 2026-07-13)
 
 `refresh_report_data.py` (Windows: `scripts/run-full-refresh.ps1`, which

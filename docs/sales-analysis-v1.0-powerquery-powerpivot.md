@@ -192,16 +192,64 @@ Final columns: `Name`, `PartnerID`, `partner_name`, `CurrencyID`, `CurrencyValue
 On `Report - Invoiced`: `Sum of debit`, `Sum of credit`, `Sum of balance`, `Sum of quantity`, `Sum of price_subtotal_eur`, `Count of price_subtotal_eur`.
 On `dim_product`: `Sum of list_price`, `Average of list_price`, `Sum of standard_price`, `Average of standard_price`.
 
-**Explicit (hand-written DAX).** Definitions below are reconstructed from the compressed model binary — intent is confirmed, exact syntax should be verified in Excel (Power Pivot → Manage) before reuse:
+**Explicit (hand-written DAX).** Exact definitions, exported verbatim from the live workbook (Power Pivot → Manage) on 2026-07-13 — these replace the earlier binary-based reconstruction. Two points where that reconstruction was wrong are marked below.
 
-| Measure | Reconstructed logic |
-|---|---|
-| `Avg Sales Price` | `ABS(DIVIDE(SUM('Report - Invoiced'[balance]), SUM('Report - Invoiced'[quantity_product_uom]), BLANK()))` — realized price per unit |
-| `Standard Cost` | `SUMX('Report - Invoiced', [quantity_product_uom] * RELATED(dim_product[standard_price]))` — qty × cost price |
-| `Standard Price` | per-unit list price: `ABS(DIVIDE(SUMX('Report - Invoiced', [quantity_product_uom] * RELATED(dim_product[list_price])), SUM([quantity_product_uom])))` |
-| `Cost of Sales` | Uses `VAR IsRentalOrder = [special_category] = "Rental Order"` — rental lines treated differently (debit-based) from normal lines (qty × standard_price) |
-| `Gross Profit` | `SUMX('Report - Invoiced', ...)` with `VAR IsRentalOrder`, `RELATED(dim_product[standard_price])`, `Qty = [quantity_product_uom]`, `Revenue = [balance] * -1`; returns Revenue − Cost per line (rental lines use debit; BLANK handling for missing cost) |
-| `Margin %` | `IF(ABS(<revenue>) < 0.01, <blank/0>, DIVIDE([Gross Profit], <revenue>))` — guards against divide-by-tiny-revenue |
+`Avg Sales Price` — realized price per product-UoM unit:
+
+```dax
+ABS(DIVIDE(SUM('Report - Invoiced'[balance]),
+           SUM('Report - Invoiced'[quantity_product_uom]),
+           BLANK()))
+```
+
+`Standard Price` — quantity-weighted average list price per unit:
+
+```dax
+ABS(DIVIDE(SUMX('Report - Invoiced',
+                'Report - Invoiced'[quantity_product_uom] * RELATED('dim_product'[list_price])),
+           SUM('Report - Invoiced'[quantity_product_uom])))
+```
+
+`Standard Cost` — quantity-weighted average cost price **per unit** (the reconstruction wrongly described this as a qty × cost *total*; it is symmetric with Standard Price):
+
+```dax
+ABS(DIVIDE(SUMX('Report - Invoiced',
+                'Report - Invoiced'[quantity_product_uom] * RELATED('dim_product'[standard_price])),
+           SUM('Report - Invoiced'[quantity_product_uom])))
+```
+
+`Cost of Sales` — per line: qty × standard cost, sign-flipped on reversal lines (`debit ≠ 0`); **rental lines carry zero cost** (the reconstruction wrongly guessed they were debit-based):
+
+```dax
+SUMX('Report - Invoiced',
+    VAR IsRentalOrder = 'Report - Invoiced'[special_category] = "Rental Order"
+    VAR StandardPrice = IF(IsRentalOrder, 0, RELATED('dim_product'[standard_price]))
+    VAR Qty = 'Report - Invoiced'[quantity_product_uom]
+    RETURN IF('Report - Invoiced'[debit] = 0, StandardPrice * Qty, -StandardPrice * Qty))
+```
+
+`Gross Profit` — per line Revenue − Cost; rental lines get zero cost (full revenue counts as profit); lines whose product has **no** cost price (`RELATED` blank: product missing from `dim_product` or `product_id` empty) also count as full revenue; on reversal lines (`debit ≠ 0`) the cost is added back:
+
+```dax
+SUMX('Report - Invoiced',
+    VAR IsRentalOrder = 'Report - Invoiced'[special_category] = "Rental Order"
+    VAR StandardPrice = IF(IsRentalOrder, 0, RELATED('dim_product'[standard_price]))
+    VAR Qty = 'Report - Invoiced'[quantity_product_uom]
+    VAR Revenue = 'Report - Invoiced'[balance] * -1
+    VAR Cost = StandardPrice * Qty
+    RETURN IF(ISBLANK(StandardPrice),
+              Revenue,
+              IF('Report - Invoiced'[debit] = 0, Revenue - Cost, Revenue + Cost)))
+```
+
+`Margin %` — returns 0 (not blank) when revenue is below 1 cent:
+
+```dax
+VAR Revenue = SUMX('Report - Invoiced', 'Report - Invoiced'[balance] * -1)
+RETURN IF(ABS(Revenue) < 0.01, 0, DIVIDE([Gross Profit], Revenue))
+```
+
+> **Porting note (phase 3):** the measures reference the fact table as `'Report - Invoiced'` and the product dimension as `'dim_product'`. Name the tables exactly like that in the rebuilt workbook and the formulas paste in unchanged; all referenced columns (`balance`, `debit`, `quantity_product_uom`, `special_category`, `dim_product[list_price]`, `[standard_price]`) exist verbatim in the phase-2 outputs, and `RELATED` needs the `product_id` relationship of §4.2.
 
 ### 4.4 Pivot usage
 The report pivots use custom captions: **Quantity** = `Sum of quantity`, **Turnover** = `Sum of price_subtotal_eur`. Slicing fields: `dim_partner[commercial_company_name]`, `dim_product[report_category_name]`, `dim_product[display_name]` / `[display_name_dutch]`, `dim_date[Year]` / `[MonthName]` / `[yyyy-qq]`, `Report - Invoiced[company_id]` / `[special_category]` / `[Name]`.
@@ -217,4 +265,4 @@ The report pivots use custom captions: **Quantity** = `Sum of quantity`, **Turno
 5. **Hard-coded product-id lists** in `special_category` need maintenance when new special/RSS products are added.
 6. **`Merge1` connection is stale** (no query behind it).
 7. **CSV parsing is fragile:** `QuoteStyle.None` with fixed column counts (13/16/8/4), and `account_move_line.csv` is read as **Windows-1252** while the others are UTF-8. The Python replacement should verify actual delimiter/quoting behavior against real files.
-8. **Explicit DAX measures** (§4.3) are reconstructions — export exact definitions from Power Pivot before the analysis phase.
+8. **Explicit DAX measures** (§4.3) — resolved 2026-07-13: exact definitions exported from the live workbook and recorded verbatim in §4.3. The earlier reconstruction was wrong on two points (Standard Cost is a per-unit average, not a total; rental lines carry zero cost rather than debit-based cost).

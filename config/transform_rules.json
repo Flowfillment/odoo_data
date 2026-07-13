@@ -13,9 +13,10 @@
     "    (g=1000, ton=0.001 relative to kg). The transform warns about any",
     "    uom id it meets that is missing here (quantity is then kept",
     "    unconverted, the legacy null-factor behaviour).",
-    "    Deliberately missing: id 39 'boxes' - the units-per-box factor",
-    "    must be copied from the dim_uom query in the legacy workbook",
-    "    (Power Query editor); until then its warning is intentional.",
+    "    Deliberately missing: id 39 'boxes' - unit archived in Odoo on",
+    "    2026-07-13 (never really used). No factor on purpose: if its",
+    "    warning ever (re)appears, historical revenue lines reference it",
+    "    and a factor decision is needed after all.",
     "    Ids 5/10/14/40 were added 2026-07-06 with natural factors after",
     "    they surfaced in the first live run - cross-check them against",
     "    the workbook's dim_uom query when it is open anyway."

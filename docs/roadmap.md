@@ -148,8 +148,12 @@ testable). Business-logic scope — the structural pipeline backlog is
   `config/transform_rules.json`. Caveat: the legacy `hours = 8` factor
   (hours -> days) is a reporting choice that is NOT in Odoo, so a config
   override on top stays needed.
-- [ ] **boxes (uom id 39)**: factor still missing — read it from the
-  `dim_uom` query in the legacy workbook (Power Query editor).
+- [x] **boxes (uom id 39)** — closed 2026-07-13: the unit was never
+  really used and has been archived in Odoo. No factor added on purpose;
+  affects only the unvalidated margin measures, not Turnover / Invoiced
+  Amount / Quantity. If the "UoM id without a factor: 39" warning ever
+  (re)appears in a refresh, historical revenue lines reference it and
+  the decision reopens.
 - [ ] **Dutch-names gap**: ~514 products without a row in the manual
   `product_template_name.xlsx` (legacy had the same gap; English fallback
   applies). Data maintenance, not logic.
@@ -176,8 +180,8 @@ model (relationships §4.2, measures §4.3) and pivots (§4.4).
 - [x] **Reconcile first** — done 2026-07-13: Invoiced Amount to the cent,
   Turnover to full float precision, Quantity and the `special_category`
   cut all match the live workbook (details in the phase 2 section).
-  Still open from this item: the `boxes` (uom id 39) factor — read it
-  from the workbook's `dim_uom` query into `config/transform_rules.json`.
+  The `boxes` (uom id 39) follow-up is closed too: the unit was archived
+  in Odoo on 2026-07-13 (see the parked-points list).
 - [ ] **Before touching measures:** export the exact DAX definitions from
   the live workbook (Power Pivot → Manage) — §4.3 is a reconstruction
   (§5.8).

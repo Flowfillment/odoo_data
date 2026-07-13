@@ -59,7 +59,7 @@ documentation). Column names follow that contract exactly:
 | File | Odoo model | Notes |
 | --- | --- | --- |
 | `account_move.csv` | `account.move` | invoice headers; `--since` filters `date` |
-| `account_move_line.csv` | `account.move.line` | invoice lines; `--since` filters `date` |
+| `account_move_line.csv` | `account.move.line` | invoice lines on 800* revenue accounts only (like the legacy flow); `--since` filters `date` |
 | `product_template.csv` | `product.template` | `product_id` = variant id (fact key) |
 | `res_currency.csv` | `res.currency` | `latest_rate` / `latest_rate_date` = Odoo `rate` / `date` |
 | `res_partner.csv` | `res.partner` | id, name, commercial_company_name, country_id |

@@ -51,6 +51,8 @@ Only the fields below are actually consumed by the Power Query layer. Any other 
 The SharePoint file metadata `Date modified` of `account_move.csv` is also read (query `refresh_date_time`) to display the data refresh timestamp.
 
 ### 2.2 `account_move_line.csv` (invoice lines) — parsed as 16 columns, Windows-1252
+
+> **Pre-filtered at the source (discovered 2026-07-13, was not visible in the workbook):** the Power Automate flow filtered the lines before writing this CSV — only rows where `account_id` is set **and its display name starts with `800`** (revenue accounts) were exported. The Power Query layer below therefore never saw receivable/VAT/cost lines. The Python extract replicates this as a server-side domain (`account_id.code =like '800%'`) in `src/datasets.py`.
 | Field | Used for |
 |---|---|
 | `account_move_id` | Format `[id, ...]`; id extracted; join key to header |

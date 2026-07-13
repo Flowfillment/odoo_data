@@ -125,9 +125,14 @@ ACCOUNT_MOVE = Dataset(
 ACCOUNT_MOVE_LINE = Dataset(
     # 2.2 invoice lines. Only the fields the transform actually consumes;
     # the legacy file's four unreferenced trailing columns are dropped.
+    # The static domain replicates the filter the legacy Power Automate
+    # flow applied before writing the CSV (discovered 2026-07-13, not in
+    # the reverse-engineered spec): only lines on 800* revenue accounts.
+    # It also implies account_id is set, matching the flow's null check.
     name="account_move_line",
     model="account.move.line",
     date_field="date",
+    static_domain=(["account_id.code", "=like", "800%"],),
     columns=(
         Column("account_move_id", "move_id", "m2o_raw"),
         Column("account_id", "account_id", "m2o_name"),

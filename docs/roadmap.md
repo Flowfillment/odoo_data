@@ -30,6 +30,12 @@ Design decisions a future session should know:
   floor (default `2025-04-01`, the report's own hard cutoff, §5.2) on
   `account_move` / `account_move_line` to keep volume sane. `--all-dates`
   disables it.
+- **`account_move_line` is filtered to 800* revenue accounts**
+  (`account_id.code =like '800%'`). Discovered 2026-07-13: the legacy
+  Power Automate flow applied this filter before writing the CSV (it was
+  invisible in the workbook, so the original spec §2.2 missed it — now
+  annotated there). Part of the source contract, so it lives in the
+  extract, not the transform.
 - **Column names follow the source contract (§2) exactly**, so the transform
   can be built against a stable, documented schema.
 - **Many2one rendering:** fields the legacy transform splits itself

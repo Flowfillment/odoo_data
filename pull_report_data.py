@@ -36,8 +36,10 @@ from __future__ import annotations
 import argparse
 import csv
 import datetime as dt
+import json
 import os
 import sys
+import time
 from typing import Any
 
 from src.config import ConfigError, load_config
@@ -78,14 +80,16 @@ def pull_dataset(
     limit: int | None,
     batch_size: int,
     output_dir: str,
-) -> int:
+) -> dict[str, Any]:
+    started = time.monotonic()
+    warnings: list[str] = []
     missing = missing_fields(client, dataset)
     if missing:
-        print(
-            f"  WARNING: {dataset.model} is missing field(s) {sorted(missing)}; "
-            "the column(s) will be written empty.",
-            file=sys.stderr,
+        warnings.append(
+            f"{dataset.model} is missing field(s) {sorted(missing)}; "
+            "the column(s) will be written empty."
         )
+        print(f"  WARNING: {warnings[-1]}", file=sys.stderr)
     fields = [f for f in dataset.source_fields if f not in missing]
 
     domain = dataset.domain(since)
@@ -104,8 +108,12 @@ def pull_dataset(
     write_csv(path, dataset, records)
 
     window = f", {dataset.date_field} >= {since}" if since and dataset.date_field else ""
-    print(f"  {dataset.csv_name}: {len(records)} record(s) from {dataset.model}{window}")
-    return len(records)
+    seconds = time.monotonic() - started
+    print(
+        f"  {dataset.csv_name}: {len(records)} record(s) from {dataset.model}{window} "
+        f"({seconds:.1f}s)"
+    )
+    return {"records": len(records), "seconds": round(seconds, 3), "warnings": warnings}
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -148,6 +156,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=500,
         help="Records per JSON-RPC round trip when pulling all (default: 500).",
     )
+    parser.add_argument(
+        "--metrics-json",
+        default=None,
+        metavar="PATH",
+        help="Write machine-readable run metrics (per-dataset record counts, "
+        "durations, warnings) to this JSON file. Used by refresh_report_data.py.",
+    )
     args = parser.parse_args(argv)
 
     if args.since != DEFAULT_SINCE:
@@ -170,9 +185,24 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return args
 
 
+def write_metrics(path: str, metrics: dict[str, Any]) -> None:
+    directory = os.path.dirname(path)
+    if directory:
+        os.makedirs(directory, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(metrics, fh, indent=2)
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     since = None if args.all_dates else args.since
+    started = time.monotonic()
+    metrics: dict[str, Any] = {
+        "phase": "extract",
+        "started_at": dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "since": since,
+        "datasets": {},
+    }
 
     try:
         config = load_config()
@@ -193,7 +223,7 @@ def main(argv: list[str] | None = None) -> int:
 
         total = 0
         for dataset in args.datasets:
-            total += pull_dataset(
+            result = pull_dataset(
                 client,
                 dataset,
                 since=since,
@@ -201,12 +231,19 @@ def main(argv: list[str] | None = None) -> int:
                 batch_size=args.batch_size,
                 output_dir=args.output_dir,
             )
+            metrics["datasets"][dataset.name] = result
+            total += result["records"]
     except OdooError as exc:
         print(f"Odoo error: {exc}", file=sys.stderr)
         return 1
     except Exception as exc:  # network/transport errors
         print(f"Failed to pull report data: {exc}", file=sys.stderr)
         return 1
+
+    metrics["total_records"] = total
+    metrics["duration_seconds"] = round(time.monotonic() - started, 3)
+    if args.metrics_json:
+        write_metrics(args.metrics_json, metrics)
 
     print(f"Done. {total} record(s) across {len(args.datasets)} file(s) in {args.output_dir}/.")
     return 0

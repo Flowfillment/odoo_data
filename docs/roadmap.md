@@ -109,6 +109,18 @@ Design decisions a future session should know:
 - Missing `output/product_template_name.xlsx` fails with a clear
   restore-from-backup message, as agreed above.
 
+## Operations — full refresh & run report (added 2026-07-13)
+
+`refresh_report_data.py` (Windows: `scripts/run-full-refresh.ps1`, which
+also syncs the repo first) runs phase 1 + phase 2 back to back and ends
+with a run report: durations per phase, records per dataset, deltas vs the
+previous run, and warnings from either phase. History accumulates in
+`output/refresh_log.md` / `output/refresh_history.jsonl`; both phase
+scripts also take `--metrics-json` standalone. The structural
+data-engineering improvement backlog lives in
+[`pipeline-improvements.md`](pipeline-improvements.md) — transform
+business-logic improvements stay in the phase 2/3 sections here.
+
 ## Phase 3 — Report (next)
 
 Rebuild the workbook on the phase-2 outputs (`output/report/`): Power Pivot

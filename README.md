@@ -13,6 +13,9 @@ export that shares the same JSON-RPC client:
 - `transform_report_data.py` — **phase 2 (transform)**: turns the staging
   CSVs into the fact + dimension tables the report consumes (the Python
   replacement of the workbook's Power Query layer).
+- `refresh_report_data.py` — **full refresh**: phase 1 + phase 2 back to
+  back, finishing with a run report (durations per phase, records
+  downloaded, observations) appended to `output/refresh_log.md`.
 - `pull_partners.py` — the original ad-hoc partner export (flattened,
   human-readable columns).
 
@@ -140,6 +143,37 @@ The transform fails with a clear message when
 `output/product_template_name.xlsx` is missing — that manual mapping cannot
 be regenerated, so restore it from backup (or point `--product-names` at it).
 
+## Usage — full refresh (phase 1 + 2 + run report)
+
+The recommended day-to-day entry point. On Windows,
+`.\scripts\run-full-refresh.ps1` syncs the repo with GitHub (timed), then
+runs `refresh_report_data.py`, which executes both phases and finishes
+with a run report:
+
+- duration per phase (git sync, extract, transform) and the total,
+- records downloaded per staging dataset with pull rate,
+- fact filter statistics and Dutch-name match rate,
+- a comparison against the previous refresh (record and duration deltas),
+- observations: warnings raised by either phase, record-count jumps
+  (>10%), and the slowest dataset.
+
+The report is printed and appended to `output/refresh_log.md`; the raw
+numbers of every run go to `output/refresh_history.jsonl` (both
+gitignored, machine-local). Per-phase metrics of the latest run are in
+`output/metrics/*.json` — both phase scripts also accept `--metrics-json`
+when run standalone. The structural improvement backlog the report links
+to is [`docs/pipeline-improvements.md`](docs/pipeline-improvements.md).
+
+```powershell
+.\scripts\run-full-refresh.ps1              # sync + extract + transform + report
+.\scripts\run-full-refresh.ps1 --iso-weeks  # extra args forwarded
+```
+
+```bash
+python refresh_report_data.py               # without the git sync step
+python refresh_report_data.py --all-dates   # forwarded to phase 1
+```
+
 ## Usage — partner export
 
 On Windows, the convenience script pulls the latest code, checks the venv and
@@ -174,15 +208,17 @@ their display name; `many2many` fields (e.g. `category_id`) are joined with `;`.
 
 ```
 odoo_data/
-├── docs/                 # roadmap, session handoff, report functional spec
+├── docs/                 # roadmap, report spec, pipeline improvement backlog
 ├── config/
 │   └── transform_rules.json  # special_category lists, company map, UoM factors
 ├── .env.example          # documents required env vars
 ├── requirements.txt      # requests, python-dotenv, openpyxl
 ├── pull_report_data.py       # phase 1: pull the 5 Sales Analysis staging CSVs
 ├── transform_report_data.py  # phase 2: staging CSVs -> fact + dimension tables
+├── refresh_report_data.py    # full refresh: phase 1 + 2 + run report
 ├── pull_partners.py      # ad-hoc partner export (flattened columns)
 ├── scripts/
+│   ├── run-full-refresh.ps1      # Windows runner: sync + refresh_report_data.py
 │   ├── run-report-pull.ps1       # Windows runner for pull_report_data.py
 │   ├── run-report-transform.ps1  # Windows runner for transform_report_data.py
 │   └── run-pull.ps1              # Windows runner for pull_partners.py

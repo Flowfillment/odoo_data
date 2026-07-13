@@ -31,8 +31,10 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import json
 import os
 import sys
+import time
 
 from src.transform import (
     FACT_COLUMNS,
@@ -96,6 +98,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Path to the manual Dutch product-name mapping "
         "(default: <input-dir>/product_template_name.xlsx).",
     )
+    parser.add_argument(
+        "--metrics-json",
+        default=None,
+        metavar="PATH",
+        help="Write machine-readable run metrics (table row counts, filter "
+        "stats, warnings, duration) to this JSON file. Used by "
+        "refresh_report_data.py.",
+    )
     args = parser.parse_args(argv)
 
     try:
@@ -112,6 +122,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     generated_at = dt.datetime.now()
+    started = time.monotonic()
+    table_rows: dict[str, int] = {}
 
     try:
         rules = load_rules(args.rules)
@@ -174,6 +186,7 @@ def main(argv: list[str] | None = None) -> int:
         ]
         for name, columns, rows in outputs:
             write_output_csv(os.path.join(args.output_dir, name), columns, rows)
+            table_rows[name.removesuffix(".csv")] = len(rows)
             print(f"  {name}: {len(rows)} row(s)")
     except TransformError as exc:
         print(f"Transform error: {exc}", file=sys.stderr)
@@ -196,23 +209,52 @@ def main(argv: list[str] | None = None) -> int:
         f"from {os.path.basename(args.product_names)} ({len(dutch_names)} mapping row(s))."
     )
 
+    warnings: list[str] = []
     if stats.unknown_company_ids:
-        print(
-            "  WARNING: company id(s) without a mapping in "
-            f"{args.rules}: {sorted(stats.unknown_company_ids)} - raw display "
-            "name(s) kept. Add them to the rules file.",
-            file=sys.stderr,
+        warnings.append(
+            f"company id(s) without a mapping in {args.rules}: "
+            f"{sorted(stats.unknown_company_ids)} - raw display name(s) kept. "
+            "Add them to the rules file."
         )
     if stats.missing_uom_ids:
         listed = ", ".join(
             f"{uom_id} ({name or 'unknown'})" for uom_id, name in sorted(stats.missing_uom_ids.items())
         )
-        print(
-            f"  WARNING: UoM id(s) without a factor in {args.rules}: {listed} - "
+        warnings.append(
+            f"UoM id(s) without a factor in {args.rules}: {listed} - "
             "quantities for these lines were left unconverted. Add the factors "
-            "from the workbook's dim_uom query to the rules file.",
-            file=sys.stderr,
+            "from the workbook's dim_uom query to the rules file."
         )
+    for warning in warnings:
+        print(f"  WARNING: {warning}", file=sys.stderr)
+
+    if args.metrics_json:
+        metrics = {
+            "phase": "transform",
+            "started_at": generated_at.strftime("%Y-%m-%d %H:%M:%S"),
+            "cutoff": args.cutoff,
+            "duration_seconds": round(time.monotonic() - started, 3),
+            "tables": table_rows,
+            "fact": {
+                "headers_total": stats.headers_total,
+                "headers_kept": stats.headers_kept,
+                "headers_not_posted": stats.headers_not_posted,
+                "headers_before_cutoff": stats.headers_before_cutoff,
+                "lines_total": stats.lines_total,
+                "lines_kept": stats.lines_kept,
+            },
+            "dutch_names": {
+                "products_matched": products_with_dutch,
+                "products_total": len(dim_product),
+                "mapping_rows": len(dutch_names),
+            },
+            "warnings": warnings,
+        }
+        directory = os.path.dirname(args.metrics_json)
+        if directory:
+            os.makedirs(directory, exist_ok=True)
+        with open(args.metrics_json, "w", encoding="utf-8") as fh:
+            json.dump(metrics, fh, indent=2)
 
     print(f"Done. Report tables written to {args.output_dir}/.")
     return 0

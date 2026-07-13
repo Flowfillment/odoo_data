@@ -64,7 +64,9 @@ documentation). Column names follow that contract exactly:
 | `account_move_line.csv` | `account.move.line` | invoice lines on 800* revenue accounts only (like the legacy flow); `--since` filters `date` |
 | `product_template.csv` | `product.template` | `product_id` = variant id (fact key) |
 | `res_currency.csv` | `res.currency` | `latest_rate` / `latest_rate_date` = Odoo `rate` / `date` |
-| `res_partner.csv` | `res.partner` | id, name, commercial_company_name, country_id |
+| `res_partner.csv` | `res.partner` | id, name, commercial_company_name, country_id, payment_term |
+| `sale_order.csv` | `sale.order` | phase 4: order headers (state, invoice_status, amounts); `--since` filters `date_order` |
+| `sale_order_line.csv` | `sale.order.line` | phase 4: ordered/delivered/invoiced qty + discount; section/note lines excluded |
 
 The sixth source of the report, `product_template_name.xlsx`, is a manually
 maintained mapping and is not pulled from Odoo. It lives at
@@ -75,9 +77,17 @@ keep a backup of the xlsx — it is the only file there that cannot be
 regenerated.
 
 This is staging only — no state filters, joins, or derived columns (that is
-phase 2). The single exception: the two `account.move` datasets take a
+phase 2). The single exception: the date-bearing datasets take a
 server-side `--since` date floor (default `2025-04-01`, the report's own
-cutoff) so the export volume stays sane.
+cutoff — which is also the start of Odoo usage, so effectively full
+history) so the export volume stays sane.
+
+The phase-4 customer report adds the two `sale_order*` datasets and a few
+columns on existing files (`amount_residual`, `payment_state`,
+`invoice_date_due`, `payment_term`, `discount`); the phase-2 transform
+reads columns by name and is unaffected. `probe_payments.py` is a one-off
+read-only exploration of the payment/reconciliation data for the
+days-to-payment KPI.
 
 ```powershell
 # Windows: pulls latest code, checks venv/.env, runs the export, summarises

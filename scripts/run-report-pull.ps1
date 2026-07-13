@@ -26,7 +26,8 @@ if ($LASTEXITCODE -ne 0) {
 
 # --- Summarise the output ----------------------------------------------------
 $csvs = @('account_move.csv', 'account_move_line.csv', 'product_template.csv',
-          'res_currency.csv', 'res_partner.csv')
+          'res_currency.csv', 'res_partner.csv', 'sale_order.csv',
+          'sale_order_line.csv')
 Write-Host ""
 foreach ($name in $csvs) {
     $out = Join-Path $repo "output\$name"

@@ -44,6 +44,7 @@ leaves the machine.
 |---|---|---|
 | `account.move` / `account.move.line` | Odoo, JSON-RPC | Server-side floors: `date >= 2025-04-01` (the report's own cutoff) and, on lines, `account_id.code =like '800%'` — the revenue-account filter the legacy flow applied invisibly (§2.2 annotation) |
 | `product.template`, `res.currency`, `res.partner` | Odoo, JSON-RPC | Full pulls |
+| `sale.order` / `sale.order.line` + payment fields | Odoo, JSON-RPC | **Phase 4 extension (2026-07-13)** for the customer report; the phase-2 transform ignores these |
 | `output/product_template_name.xlsx` | **Manual file** | Dutch product names (§2.6). **Cannot be regenerated — keep a backup.** The transform fails clearly when it is missing |
 | `config/transform_rules.json` | Config (in git) | `special_category` rules, company mapping (incl. the PRM B.V. fix), UoM factor table. Editing this file is how business rules are maintained |
 

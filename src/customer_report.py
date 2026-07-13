@@ -357,9 +357,8 @@ td.frame-body {{ padding: 0 14mm; }}
 .banner .customer {{ color: #9DC6E8; font-size: 14pt; margin: 1mm 0 4mm; }}
 .banner .meta {{ font-size: 9pt; color: #fff; }}
 .banner .meta .sep {{ color: #9DC6E8; padding: 0 6px; }}
-.banner .logo {{ float: right; background: #fff; border-radius: 3px;
-                padding: 3px 8px; margin-left: 8mm; }}
-.banner .logo img {{ height: 14mm; display: block; }}
+.banner .logo {{ float: right; margin-left: 8mm; }}
+.banner .logo img {{ height: 16mm; display: block; }}
 .badge {{ display: inline-block; padding: 1px 10px; border-radius: 3px;
          font-weight: 700; font-size: 8.5pt; letter-spacing: .5px; }}
 .badge.internal {{ background: #7a1f1f; color: #fff; }}

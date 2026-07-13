@@ -108,6 +108,8 @@ def pull_dataset(
     write_csv(path, dataset, records)
 
     window = f", {dataset.date_field} >= {since}" if since and dataset.date_field else ""
+    for condition in dataset.static_domain:
+        window += f", {condition[0]} {condition[1]} {condition[2]}"
     seconds = time.monotonic() - started
     print(
         f"  {dataset.csv_name}: {len(records)} record(s) from {dataset.model}{window} "

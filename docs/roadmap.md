@@ -13,8 +13,9 @@ validation status, assumptions) is
 
 ```
 Phase 1  EXTRACT    Odoo -> staging CSVs            DONE
-Phase 2  TRANSFORM  staging CSVs -> fact + dims     DONE
-Phase 3  REPORT     Excel / Power Pivot on top      NEXT (not started)
+Phase 2  TRANSFORM  staging CSVs -> fact + dims     DONE (validated POC)
+Phase 3  REPORT     Excel / Power Pivot rebuild     DROPPED 2026-07-13
+Phase 4  CUSTOMER REPORT  per-customer PDF skill    NEXT (goal set 2026-07-13)
 ```
 
 ---
@@ -165,12 +166,18 @@ testable). Business-logic scope — the structural pipeline backlog is
 
 ## Model v2 — deferred redesign (decision 2026-07-13)
 
-**Sequencing decision:** first settle how the data model will be deployed
-(Excel/Power Pivot vs Power BI, single machine vs shared/scheduled), then
-redesign the transformation **and** the code structure together in one
-design round, in service of that target. Nothing gets polished twice; the
-POC stays frozen as the validated reference and the full refresh remains
-in daily use meanwhile.
+**Sequencing decision:** first settle how the data model will be deployed,
+then redesign the transformation **and** the code structure together in
+one design round, in service of that target. Nothing gets polished twice;
+the POC stays frozen as the validated reference and the full refresh
+remains in daily use meanwhile.
+
+**Deployment decided 2026-07-13:** the consumer is the phase-4 customer
+report skill (plus ad-hoc analysis) — the Excel workbook rebuild is
+dropped. That removes the Power Pivot compatibility constraint on the
+candidates below (fact-table layout and pivot field references no longer
+bind), so the v2 round can be scheduled alongside or right after the
+phase-4 extract extensions.
 
 Model v2 candidates (dimensional-design review, 2026-07-13 — these are
 deliberate legacy heritage, not port bugs; changing them breaks
@@ -207,42 +214,80 @@ data-engineering improvement backlog lives in
 [`pipeline-improvements.md`](pipeline-improvements.md) — transform
 business-logic improvements stay in the phase 2/3 sections here.
 
-## Phase 3 — Report (next)
+## Phase 3 — Excel workbook rebuild (dropped 2026-07-13)
 
-Rebuild the workbook on the phase-2 outputs (`output/report/`): Power Pivot
-model (relationships §4.2, measures §4.3) and pivots (§4.4).
+**Owner decision 2026-07-13: the workbook rebuild is no longer a goal.**
+The real end product is the phase-4 customer report. The validated
+phase-2 model was still the right starting point: it **anchors the margin
+definition** — the customer report's margin totals must stay in line with
+the sales-wide numbers this model produces. Work already done here that
+phase 4 builds on: the exact DAX measures are recorded verbatim in spec
+§4.3 (exported 2026-07-13; the earlier reconstruction was wrong on two
+points), and the full reconciliation of 2026-07-13 validated Invoiced
+Amount / Turnover / Quantity / `special_category` against the legacy
+workbook. Margin measures are accepted as-is for the POC (owner decision
+2026-07-13); formal validation of them moves into phase 4 (the internal
+variant exposes margins directly). The `Merge1`/workbook cleanups (§5.6)
+are moot; the `CurrencyValue` verification (phase 1) stays open.
 
-- [x] **Reconcile first** — done 2026-07-13: Invoiced Amount to the cent,
-  Turnover to full float precision, Quantity and the `special_category`
-  cut all match the live workbook (details in the phase 2 section).
-  The `boxes` (uom id 39) follow-up is closed too: the unit was archived
-  in Odoo on 2026-07-13 (see the parked-points list).
-- [x] **Export the exact DAX definitions** — done 2026-07-13: all six
-  explicit measures recorded verbatim in spec §4.3 (replacing the
-  reconstruction, which was wrong on two points). They work unchanged on
-  the phase-2 outputs **provided** the rebuilt model names the tables
-  `Report - Invoiced` and `dim_product` — see the porting note in §4.3.
-- [ ] **Validate the margin measures** after the rebuild: Gross Profit /
-  Margin % / Cost of Sales depend on `quantity_product_uom` and
-  `standard_price`, which the 2026-07-13 reconciliation did not cover
-  (only Turnover, Invoiced Amount, Quantity, special_category).
-  **POC note (2026-07-13): the owner accepts the margin measures as-is
-  for the POC**; this item stays open for when the model graduates
-  beyond POC.
-- [ ] The stale `Merge1` connection in the workbook (§5.6) — remove when
-  the workbook is rebuilt on the new outputs.
-- [ ] Also still open: the `CurrencyValue` verification from phase 1 (see
-  above).
+## Phase 4 — Customer report skill (goal set 2026-07-13)
 
-## Handoff — how to start the phase 3 session
+**Goal:** a Claude skill that generates, on request, a customer-specific
+2–3 page PDF for sales — reproducible: validated data, recorded KPI
+definitions, one standardised generation process. **Two variants from one
+template: customer-facing (no margins whatsoever) and internal (with
+margins).** The margin definition is the validated phase-2 logic (exact
+DAX in spec §4.3), so customer-level margins always reconcile with the
+sales-wide report.
+
+KPI set (owner, 2026-07-13):
+
+1. Products bought, per product and category  ✅ covered by the model
+2. Margins (internal variant only)            ✅ logic recorded (§4.3)
+3. Invoiced vs still to deliver               ❌ needs `sale.order.line`
+4. Payment terms of the customer              ❌ one partner field
+5. Open invoices                              ❌ 3 extra header fields
+6. Avg days invoice → payment                 ❌ needs reconciliation data
+7. Discounts applied                          ❌ `discount` line field
+
+Context decisions: 2025-04 **is** the full history (Odoo start), so the
+existing `--since` default already covers everything; reports are run on
+request by the owner (own machine, existing `.env`), not self-service.
+
+Plan:
+
+1. **Extract extensions** (`src/datasets.py`): new dataset
+   `sale_order_line` (ordered/delivered/invoiced qty, discount, state);
+   extra columns on `account_move` (`amount_residual`, `payment_state`,
+   `invoice_date_due`, payment term) and `account_move_line`
+   (`discount`); partner payment term on `res_partner`. Investigate on
+   the live instance how to get payment dates (likely
+   `account.partial.reconcile`) — the one open data question.
+2. **KPI layer**: per-customer computations in code with definitions
+   documented; margin formula = §4.3 Gross Profit, verbatim port.
+3. **Skill + template**: `.claude/skills/` skill taking customer +
+   variant; HTML template rendered to PDF (headless Edge/Chrome — no new
+   dependencies); the customer variant excludes margin data at the
+   data-assembly level, not just in presentation, so it cannot leak.
+4. **Pilot**: one real customer, each KPI spot-checked against the Odoo
+   UI (order data and payment KPIs are new, outside the validated scope);
+   margin total cross-checked against the sales-wide model.
+
+Design questions still open for the business: exact definition of
+"still to deliver" (€ or units; basis: order lines), report period
+layout (full history vs recent focus), PDF branding/house style.
+
+## Handoff — how to start the phase 4 session
 
 1. Read `docs/sales-analysis-pipeline-as-is.md` (the validated as-is),
-   this file, and the spec (`docs/sales-analysis-v1.0-powerquery-powerpivot.md`).
+   this file (phase 4 plan above), and the spec
+   (`docs/sales-analysis-v1.0-powerquery-powerpivot.md`) for §4.3.
 2. Extract layer: `src/datasets.py` is the source contract in code;
    `python pull_report_data.py --limit 5` is a quick smoke test.
 3. Transform layer: `python transform_report_data.py` reads `output/` and
    writes `output/report/`; business rules live in
    `config/transform_rules.json`. Extract and transform are decoupled —
    either can run alone.
-4. The workbook rebuild happens on the local Windows machine (Excel);
-   this repo can prepare everything up to and including the CSV outputs.
+4. Data and PDF generation live on the owner's Windows machine; the
+   cloud session develops code, the local machine runs it
+   (`scripts/run-full-refresh.ps1`).
